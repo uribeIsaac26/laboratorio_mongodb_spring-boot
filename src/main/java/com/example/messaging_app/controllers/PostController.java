@@ -2,8 +2,10 @@ package com.example.messaging_app.controllers;
 
 import com.example.messaging_app.entities.Comment;
 import com.example.messaging_app.entities.Post;
-import com.example.messaging_app.entities.Response;
+import com.example.messaging_app.entities.Reply;
+import com.example.messaging_app.repositories.CommentRepository;
 import com.example.messaging_app.repositories.PostRepository;
+import com.example.messaging_app.repositories.ReplyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,48 +17,35 @@ import java.util.UUID;
 @RequestMapping("/posts")
 @RequiredArgsConstructor
 public class PostController {
-    private final PostRepository repository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final ReplyRepository replyRepository;
 
     @PostMapping
     public Post create(@RequestBody Post post){
-        return repository.save(post);
+        return postRepository.save(post);
     }
 
     @GetMapping
     public List<Post> getAll(){
-        return repository.findAll();
+        return postRepository.findAll();
     }
 
-    @PostMapping("/{id}/comment")
-    public Post addComment(@PathVariable String id, @RequestBody Comment comment){
-        Post post = repository.findById(id).orElseThrow();
+    @PostMapping("/{postId}/comment")
+    public Comment addComment(@PathVariable String postId, @RequestBody Comment comment){
 
-        if (post.getComments() == null){
-            post.setComments(new ArrayList<>());
-        }
+        comment.setPostId(postId);
 
-        comment.setId(UUID.randomUUID().toString());
-
-        post.getComments().add(comment);
-
-        return repository.save(post);
+        return commentRepository.save(comment);
     }
 
-    @PostMapping("/{postId}/comment/{commentId}/response")
-    public Post addResponse(@PathVariable String postId, @PathVariable String commentId, @RequestBody Response response){
-        Post post = repository.findById(postId).orElseThrow();
 
-        for (Comment comment : post.getComments()){
-            if (comment.getId().equals(commentId)){
-                if(comment.getResponses() == null){
-                    comment.setResponses(new ArrayList<>());
-                }
 
-                comment.getResponses().add(response);
-            }
-        }
+    @PostMapping("/{commentId}/reply")
+    public Reply addResponse(@PathVariable String commentId, @RequestBody Reply reply){
+        reply.setCommentId(commentId);
 
-        return repository.save(post);
+        return replyRepository.save(reply);
     }
 
     @PostMapping("/{postId}/comment/test/{quantity}")
@@ -64,7 +53,7 @@ public class PostController {
 
         long inicio = System.currentTimeMillis();
 
-        Post post = repository.findById(postId).orElseThrow();
+        Post post = postRepository.findById(postId).orElseThrow();
 
         if (post.getComments() == null){
             post.setComments(new ArrayList<>());
@@ -78,7 +67,7 @@ public class PostController {
             post.getComments().add(comment);
         }
 
-        Post postSaved =  repository.save(post);
+        Post postSaved =  postRepository.save(post);
 
         long fin = System.currentTimeMillis();
 

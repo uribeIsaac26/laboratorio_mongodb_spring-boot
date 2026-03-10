@@ -4,15 +4,12 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Collection;
-import java.util.List;
-
 @Data
-@Document(collection = "comments")
-public class Comment {
+@Document(collection = "replies")
+public class Reply {
     @Id
     private String id;
-    private String postId;
     private String user;
     private String message;
+    private String commentId;
 }
