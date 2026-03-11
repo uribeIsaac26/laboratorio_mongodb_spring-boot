@@ -20,7 +20,7 @@ Se realizan experimentos progresivos para entender:
 - Qué sucede cuando los documentos crecen demasiado
 - Cuándo usar referencias en lugar de embedding
 
-## Versión 1 - Modelo Embebido
+## Versión 1 - Modelo embebido (comments dentro de post)
 
 En la primera versión se modelaron los comentarios dentro del documento Post.
 
@@ -53,7 +53,7 @@ Conclusión:
 
 MongoDB tiene un límite máximo de 16MB por documento.
 
-## Versión 2 - Modelo con Referencias
+## Versión 2 - Modelo con referencias (posts / comments / replies)
 
 Para evitar el crecimiento ilimitado del documento se refactorizó el modelo.
 
@@ -63,6 +63,96 @@ posts
 comments
 replies
 ```
+
+### Objetivo del experimento
+
+Evaluar el rendimiento de diferentes estrategias de inserción masiva en MongoDB
+utilizando Spring Boot.
+
+Se compararon tres enfoques:
+
+- Inserción individual usando `save()`
+- Inserción por lotes usando `saveAll()`
+- Inserción optimizada utilizando `BulkOperations`
+
+
+### Volumen de datos
+
+Para la prueba se generó la siguiente estructura de datos:
+
+- 100 posts
+- 100 comentarios por post
+- 100 respuestas por comentario
+
+Total de documentos generados:
+
+Posts: 100  
+Comments: 10,000  
+Replies: 1,000,000
+
+Total documentos: **1,010,100**
+
+### Modelo de datos
+
+```
+Post
+ └─ Comment (reference: postId)
+     └─ Reply (reference: commentId)
+```
+
+### Entorno de prueba
+
+- Java: 21
+- Spring Boot: 3.x
+- MongoDB: 7.x
+- Driver MongoDB: Spring Data MongoDB
+- Sistema operativo: Windows
+- Hardware: prueba ejecutada en entorno local
+
+### Resultado Pruebas Rendimiento
+
+| Método            | Tiempo |
+|-------------------|--------|
+| save() individual | 378 s  |
+| saveAll()         | 33 s   |
+| BulkOperations    | 22.8 s |
+
+
+| Batch | Tiempo |
+|-------|--------|
+| 100   | 21 s   |
+| 500   | 18 s   |
+| 1000  | 15 s   |
+| 5000  | 14 s   |
+
+
+### Conclusiones
+
+1. La inserción individual (`save()`) es extremadamente costosa debido a que cada
+   operación implica una llamada independiente a la base de datos.
+
+2. `saveAll()` mejora significativamente el rendimiento al enviar múltiples
+   documentos en una sola operación.
+
+3. `BulkOperations` ofrece el mejor rendimiento para inserciones masivas,
+   ya que permite enviar grandes lotes de operaciones directamente al driver
+   de MongoDB.
+
+4. Aumentar el tamaño del batch mejora el rendimiento hasta cierto punto,
+   después del cual la mejora es marginal.
+
+### Throughput
+
+1,000,000 documentos insertados en 14 segundos
+
+≈ 71,000 inserts por segundo
+
+
+## Versión 3 - Replica Set (alta disponibilidad)
+
+
+
+## Versión 4 - Sharding (escalabilidad horizontal)
 
 #  Tecnologías usadas
 

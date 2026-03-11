@@ -108,7 +108,7 @@ public class PostController {
 
         long fin = System.currentTimeMillis();
 
-        System.out.println("Tiempo: " + (fin - inicio) + " ms");
+        System.out.println("Tiempo: " + ((fin - inicio)/1000) + " s");
 
         return "Comentarios guardados";
     }
