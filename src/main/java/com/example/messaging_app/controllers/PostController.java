@@ -6,12 +6,12 @@ import com.example.messaging_app.entities.Reply;
 import com.example.messaging_app.repositories.CommentRepository;
 import com.example.messaging_app.repositories.PostRepository;
 import com.example.messaging_app.repositories.ReplyRepository;
+import com.example.messaging_app.services.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/posts")
@@ -20,6 +20,7 @@ public class PostController {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final ReplyRepository replyRepository;
+    private final PostService postService;
 
     @PostMapping
     public Post create(@RequestBody Post post){
@@ -48,31 +49,67 @@ public class PostController {
         return replyRepository.save(reply);
     }
 
-    @PostMapping("/{postId}/comment/test/{quantity}")
-    public Post insertCommentsMassive(@PathVariable String postId, @PathVariable Integer quantity){
+    @GetMapping("/{postId}/comments")
+    public List<Comment> getComments(@PathVariable String postId){
+        return commentRepository.findByPostId(postId);
+    }
+
+    @GetMapping("/{commentId}/replies")
+    public List<Reply> getReplies(@PathVariable String commentId){
+        return replyRepository.findByCommentId(commentId);
+    }
+
+
+
+    @PostMapping("/generate")
+    public String insertCommentsMassive(){
+        List<Reply> replyList = new ArrayList<>();
 
         long inicio = System.currentTimeMillis();
 
-        Post post = postRepository.findById(postId).orElseThrow();
+        for (int i = 0; i<100; i++){
+            Post post = new Post();
+            post.setAuthor("Test" + i);
+            post.setTitle("Test" + i);
+            post.setContent("Test" + i);
 
-        if (post.getComments() == null){
-            post.setComments(new ArrayList<>());
+            Post postSaved = postRepository.save(post);
+
+            for (int j = 0; j<100;j++){
+                Comment comment = new Comment();
+                comment.setUser("User " + j);
+                comment.setMessage("Message " + j);
+                comment.setPostId(postSaved.getId());
+
+                Comment commentSaved = commentRepository.save(comment);
+
+                for (int k = 0; k<100;k++){
+                    Reply reply = new Reply();
+                    reply.setUser("User" + k);
+                    reply.setMessage("Message " + k);
+                    reply.setCommentId(commentSaved.getId());
+
+                    replyList.add(reply);
+
+                    if (replyList.size() == 5000){
+                        postService.insertReplies(replyList);
+
+                        replyList.clear();
+                    }
+
+                }
+
+            }
         }
 
-        for (int i = 0; i < quantity; i++){
-            Comment comment = new Comment();
-            comment.setId(UUID.randomUUID().toString());
-            comment.setUser("user_" + i);
-            comment.setMessage("Message test " + i);
-            post.getComments().add(comment);
+        if (!replyList.isEmpty()) {
+            postService.insertReplies(replyList);
         }
-
-        Post postSaved =  postRepository.save(post);
 
         long fin = System.currentTimeMillis();
 
         System.out.println("Tiempo: " + (fin - inicio) + " ms");
 
-        return postSaved;
+        return "Comentarios guardados";
     }
 }

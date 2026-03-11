@@ -80,7 +80,7 @@ replies
 
 2. Clonar repositorio
 
-git clone https://github.com/usuario/mongo-lab
+git clone https://github.com/uribeIsaac26/laboratorio_mongodb_spring-boot.git
 
 3. Ejecutar proyecto
 
