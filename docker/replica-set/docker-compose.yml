@@ -1,0 +1,60 @@
+services:
+  mongo1:
+    image: mongo:7.0
+    container_name: mongo1
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    networks:
+      - mongo-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongo2:
+    image: mongo:7.0
+    container_name: mongo2
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27018:27017"
+    networks:
+      - mongo-network
+
+  mongo3:
+    image: mongo:7.0
+    container_name: mongo3
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27019:27017"
+    networks:
+      - mongo-network
+
+  # Este servicio configura el cluster automáticamente
+  mongo-init:
+    image: mongo:7.0
+    container_name: mongo-init
+    networks:
+      - mongo-network
+    depends_on:
+      mongo1:
+        condition: service_healthy
+    entrypoint: >
+      /bin/bash -c "
+      echo 'Esperando a que los nodos sincronicen...' &&
+      sleep 20;
+      mongosh --host mongo1:27017 --eval '
+        rs.initiate({
+          _id: \"rs0\",
+          members: [
+            { _id: 0, host: \"mongo1:27017\" },
+            { _id: 1, host: \"mongo2:27017\" },
+            { _id: 2, host: \"mongo3:27017\" }
+          ]
+        })';
+      echo 'Replica Set configurado con éxito';"
+
+networks:
+  mongo-network:
+    driver: bridge

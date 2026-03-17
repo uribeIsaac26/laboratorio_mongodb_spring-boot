@@ -150,6 +150,135 @@ Post
 
 ## Versión 3 - Replica Set (alta disponibilidad)
 
+En esta versión se implementa un cluster de MongoDB con 3 nodos utilizando un Replica Set.
+
+Objetivos del experimento:
+
+- entender cómo se crea un cluster
+- observar la replicación entre nodos
+- probar el failover automático
+
+---
+
+## Experimentos realizados
+
+| Experimento | Descripción |
+|-------------|-------------|
+| Replica Set | Cluster MongoDB con 3 nodos |
+| Replicación | Verificación de sincronización de datos |
+| Failover | Elección automática de nuevo PRIMARY |
+
+# 1. Creación del cluster
+
+## Arquitectura del cluster
+
+Se levantó un Replica Set con tres nodos.
+
+```
+        PRIMARY
+        mongo1
+          │
+   ┌──────┴──────┐
+ mongo2       mongo3
+SECONDARY     SECONDARY
+```
+
+### Levantar los nodos
+
+Se utilizó Docker Compose para crear tres instancias de MongoDB.
+
+``` 
+docker compose up -d
+```
+
+Inicialización del Replica Set:
+
+``` 
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongo1:27017" },
+    { _id: 1, host: "mongo2:27017" },
+    { _id: 2, host: "mongo3:27017" }
+  ]
+})
+```
+
+Resultado
+```
+mongo1 → PRIMARY
+mongo2 → SECONDARY
+mongo3 → SECONDARY
+```
+
+# 2. Replicación de datos
+
+Para comprobar la replicación se insertó un documento en el nodo PRIMARY.
+
+```
+use lab
+db.posts.insertOne({
+  title: "Replica test",
+  author: "Isaac"
+})
+```
+
+Luego se consultó desde un nodo secundario:
+
+```declarative
+docker exec -it mongo2 mongosh
+```
+
+Consulta:
+
+```declarative
+rs.secondaryOk()
+use lab
+db.posts.find()
+```
+
+Resultado:
+
+El documento insertado en el PRIMARY aparece también en el nodo SECONDARY.
+
+Esto confirma que la replicación está funcionando correctamente.
+
+
+# 3. Failover automático
+
+Se simuló la caída del nodo principal.
+
+```declarative
+docker stop mongo1
+```
+
+MongoDB realizó automáticamente una nueva elección de líder.
+
+Verificación:
+
+```declarative
+rs.status()
+```
+
+Resultado:
+
+```declarative
+mongo1 → OFFLINE
+mongo2 → PRIMARY
+mongo3 → SECONDARY
+```
+
+Conclusión:
+
+El cluster continuó funcionando sin interrupción gracias al mecanismo de elección automática de MongoDB.
+
+## Conclusiones
+
+- MongoDB Replica Set permite alta disponibilidad.
+- Los nodos secundarios mantienen una copia sincronizada de los datos.
+- Si el nodo principal falla, otro nodo es elegido automáticamente como PRIMARY.
+- Las aplicaciones pueden continuar operando sin intervención manual.
+
 
 
 ## Versión 4 - Sharding (escalabilidad horizontal)
