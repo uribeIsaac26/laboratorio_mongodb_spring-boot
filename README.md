@@ -268,6 +268,37 @@ mongo2 → PRIMARY
 mongo3 → SECONDARY
 ```
 
+## Experimento de Tolerancia a Fallos Críticos
+
+Se realizó una prueba de estrés tumbando 2 de los 3 nodos simultáneamente:
+
+1. Al caer mongo1, el cluster mantuvo la mayoría (2/3) y eligió a mongo2 como PRIMARY.
+2. Al caer mongo2, solo quedó 1 nodo vivo (1/3).Resultado: El cluster perdió el Quorum y el nodo restante (mongo3) pasó automáticamente a modo SECONDARY (solo lectura).Conclusión: Un Replica Set de 3 nodos solo puede garantizar escrituras si al menos 2 nodos están en línea ($n/2 + 1$).
+
+
+## Configuración de Resiliencia en Spring Boot
+
+Para que la aplicación soporte el failover sin intervención manual, se utilizó la siguiente URI de conexión:
+
+``` 
+mongodb://mongo1:27017,mongo2:27017,mongo3:27017/lab_messaging_app?replicaSet=rs0&retryWrites=true
+```
+
+1. replicaSet=rs0: Permite al driver descubrir todos los nodos del cluster automáticamente.
+
+2. retryWrites=true: Instruye al driver para reintentar una operación de escritura si el nodo PRIMARY cae durante el proceso, garantizando la continuidad del servicio.
+
+
+## Evidencia de Failover en Logs
+
+Durante la caída de un nodo, el driver de MongoDB en Java registró la transición:
+
+``` 
+INFO: Discovered replica set primary mongo2:27017
+ERROR: Exception in monitor thread while connecting to server mongo1:27017 (ShutdownInProgress)
+INFO: Documento 272 guardado # <-- La app siguió funcionando tras el cambio de líder
+```
+
 Conclusión:
 
 El cluster continuó funcionando sin interrupción gracias al mecanismo de elección automática de MongoDB.
@@ -292,6 +323,7 @@ El cluster continuó funcionando sin interrupción gracias al mecanismo de elecc
 - MongoDB
 - Spring Data MongoDB
 - MongoDB Compass
+- WSL2
 
 ## Ejecutar el proyecto
 

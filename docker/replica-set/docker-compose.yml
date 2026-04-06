@@ -1,10 +1,22 @@
 services:
+  app-messaging:
+    build:
+      context: ../../          # Esto sube 3 niveles hasta la raíz de tu proyecto
+      dockerfile: Dockerfile      # Indica que el archivo está ahí
+    container_name: app-messaging
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo1:27017,mongo2:27017,mongo3:27017/lab_messaging_app?replicaSet=rs0&retryWrites=true
+    networks:
+      - mongo-network
+    depends_on:
+      mongo1:
+        condition: service_healthy
   mongo1:
     image: mongo:7.0
     container_name: mongo1
     command: ["--replSet", "rs0", "--bind_ip_all"]
-    ports:
-      - "127.0.0.1:27017:27017"
     networks:
       - mongo-network
     healthcheck:
@@ -17,8 +29,6 @@ services:
     image: mongo:7.0
     container_name: mongo2
     command: ["--replSet", "rs0", "--bind_ip_all"]
-    ports:
-      - "127.0.0.2:27017:27017"
     networks:
       - mongo-network
 
@@ -26,34 +36,32 @@ services:
     image: mongo:7.0
     container_name: mongo3
     command: ["--replSet", "rs0", "--bind_ip_all"]
-    ports:
-      - "127.0.0.3:27017:27017"
     networks:
       - mongo-network
 
   # Este servicio configura el cluster automáticamente
-  mongo-init:
-    image: mongo:7.0
-    container_name: mongo-init
-    networks:
-      - mongo-network
-    depends_on:
-      mongo1:
-        condition: service_healthy
-    entrypoint: >
-      /bin/bash -c "
-      echo 'Esperando a que los nodos sincronicen...' &&
-      sleep 20;
-      mongosh --host mongo1:27017 --eval '
-        rs.initiate({
-          _id: \"rs0\",
-          members: [
-            { _id: 0, host: \"mongo1:27017\" },
-            { _id: 1, host: \"mongo2:27017\" },
-            { _id: 2, host: \"mongo3:27017\" }
-          ]
-        })';
-      echo 'Replica Set configurado con éxito';"
+#  mongo-init:
+#    image: mongo:7.0
+#    container_name: mongo-init
+#    networks:
+#      - mongo-network
+#    depends_on:
+#      mongo1:
+#        condition: service_healthy
+#    entrypoint: >
+#      /bin/bash -c "
+#      echo 'Esperando a que los nodos sincronicen...' &&
+#      sleep 20;
+#      mongosh --host mongo1:27017 --eval '
+#        rs.initiate({
+#          _id: \"rs0\",
+#          members: [
+#            { _id: 0, host: \"mongo1:27017\" },
+#            { _id: 1, host: \"mongo2:27017\" },
+#            { _id: 2, host: \"mongo3:27017\" }
+#          ]
+#        })';
+#      echo 'Replica Set configurado con éxito';"
 
 networks:
   mongo-network:
