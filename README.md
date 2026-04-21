@@ -325,6 +325,26 @@ El cluster continuó funcionando sin interrupción gracias al mecanismo de elecc
 - MongoDB Compass
 - WSL2
 
+## Comandos mongodb consola
+
+- Entrar al contenedor 
+
+    ```docker exec -it mongo1 mongosh```
+- Listar las bases de datos
+
+    ```show dbs```
+
+- Entrar a la base de datos 
+    
+    ```use mi_base_datos```
+
+- Mirar las colecciones 
+
+    ```show collections```
+
+- Ver datos 
+
+    ```db.mi_coleccion.find()```
 ## Ejecutar el proyecto
 
 1. Iniciar MongoDB
@@ -336,3 +356,10 @@ git clone https://github.com/uribeIsaac26/laboratorio_mongodb_spring-boot.git
 3. Ejecutar proyecto
 
 ./gradlew bootRun
+
+4. Para ejecutar el proyecto desde docker en la raiz del proyecto:
+
+``` 
+docker compose -f docker/replica-set/docker-compose.yml up -d --build
+```
+
